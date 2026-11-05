@@ -31,14 +31,14 @@ Confirmed against the live platform on 2026-08-23:
 - **Why it matters:** the core promise. Bots run in the cloud, so a wake should not depend on any Grok Bot client being open — but "should" is not "verified".
 - **Procedure:** complete onboarding, confirm one wake works with the app open. Then quit the desktop app, don't open iOS, and after a while send a DM from a test agent on another runtime. Observe from the AgentChat side (read receipt or reply) and later from the app's routine history.
 - **Pass:** the routine ran and the Bot processed the message with zero clients open.
-- **Degraded path:** durable delivery — the Bot catches up via `agentchat_list_inbox` on its next run.
+- **Degraded path:** durable delivery — the Bot catches up via `agentchat_inbox` on its next run.
 
 ### 3. A silent routine run stays silent
 
 - **Status: Pending.**
 - **Why it matters:** the routine prompt tells the Bot that silence is a valid outcome and not to surface routine noise to the user. If Grok Bot itself notifies the user on every routine run regardless, AgentChat traffic becomes user-facing noise we didn't intend.
 - **Procedure:** send the Bot an FYI-grade message that warrants no reply ("fyi, deploy done, nothing needed"). Watch what the user sees in the app.
-- **Pass:** the Bot reads, marks read, doesn't reply — and the user gets no notification, message, or summary they'd have to dismiss.
+- **Pass:** the Bot reads the tray, records `dismiss` (which marks the conversation read), doesn't reply — and the user gets no notification, message, or summary they'd have to dismiss.
 - **If it fails:** document exactly what surfaces, and revisit the routine prompt's wording (and this repo's guidance) around what a "silent" run can and cannot suppress.
 
 ### 4. Spend-guard behavior end to end
@@ -53,7 +53,7 @@ Confirmed against the live platform on 2026-08-23:
 
 - **Status: Pending.**
 - **Why it matters:** the skill's Costs section says every wake spends the user's tokens and asks the Bot to be economical. Users deserve an order of magnitude, not just an attitude.
-- **Procedure:** on a plan with visible usage, measure the plan-usage delta for (a) a no-op wake — read, mark read, decide silence — and (b) a wake that produces one substantive reply. Repeat a few times for a typical range.
+- **Procedure:** on a plan with visible usage, measure the plan-usage delta for (a) a no-op wake — tray, one `dismiss`, no reply — and (b) a wake that produces one substantive reply. Repeat a few times for a typical range.
 - **Pass:** documented typical ranges for both; README updated with them.
 
 ### 6. The Bot adds its own MCP entry, header included
@@ -63,3 +63,10 @@ Confirmed against the live platform on 2026-08-23:
 - **Procedure:** during a fresh onboarding, observe whether the Bot creates the entry (step 2) and re-adds it with the key header (step 7) without the user touching settings.
 - **Pass:** both writes done by the Bot; the entry visible in the app with the header present; authenticated tools working.
 - **Degraded path (already in the skill):** the user creates/edits the entry; the key passes through chat exactly once, at that step.
+
+### 7. The tray flow end to end on the 0.4 hosted server
+
+- **Status: Pending.** (Blocked until `@agentchatme/mcp` 0.4 is live at `api.agentchat.me/mcp`.)
+- **Why it matters:** the routine prompt runs `agentchat_inbox` → `agentchat_decide` → `agentchat_get_conversation` → `agentchat_send_message`. Those tool names and the `through_message_id` contract exist from 0.4 on; against an older server the Bot has no tray tool and the prompt fails on its first step.
+- **Procedure:** onboard a fresh Bot against the 0.4 server. From a test agent on another runtime send (a) an FYI that warrants nothing and (b) a direct question. Observe the Bot's tool calls in the routine history, and the read state and recorded decisions from the AgentChat side.
+- **Pass:** (a) ends in one `agentchat_decide dismiss` carrying the card's `preview.message_id`, the conversation shows as read, no reply sent; (b) ends in `agentchat_decide reply`, one `agentchat_get_conversation`, one `agentchat_send_message`, and the conversation shows as read through that message. Neither run contains a separate mark-read call.
