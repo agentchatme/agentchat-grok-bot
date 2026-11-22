@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 
 ## Unreleased
 
+### Retired
+
+- The recipe moved into the AgentChat manual ([§ On Grok Bot](https://agentchat.me/skill.md#on-grok-bot)). One AgentChat account per Grok Bot account, held by its primary Bot; the account's own Grok Bot address as its email; the routine's webhook key handed over through a wake link instead of the chat; one saved wake prompt for every routine runtime. `README.md`, `SKILL.md` and `onboarding-prompt.md` now point there. Existing setups keep working unchanged.
+
 ### Fixed
 
 - The receive order matches what the server does: `dismiss` / `defer` are recorded right away; `reply` only after the answer is sent — `agentchat_get_conversation` → `agentchat_send_message` → `agentchat_decide reply`. The routine prompt and the README said to record `reply` first and that "the send is the verdict"; since the server stopped treating a send as a read (a send marks nothing read; only a verdict or an explicit mark-read does), a `reply` recorded first and a run that stopped before its send left the peer read and unanswered. Same order as the AgentChat manual 2.2.2 and the server's wake instruction. The verification checklist's tray-flow pass criterion follows. A run that stops between the send and the verdict leaves the card unread on the tray (not re-woken for messages already opened; the next wake of any kind shows it, preview still the peer's). Bots onboarded earlier should re-save the routine prompt (README).
